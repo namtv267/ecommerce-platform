@@ -1,0 +1,63 @@
+### 0. Danh sách sản phẩm (public, đọc từ ClickHouse qua MyBatis)
+GET http://localhost:8082/api/products
+
+### 1. Đăng ký + đăng nhập (lấy access token)
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "password123", "fullName": "Bob" }
+
+###
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "password123" }
+
+### 2. Đặt hàng (thay <ACCESS_TOKEN>). Gửi lại NGUYÊN request này nhiều lần -> luôn cùng 1 đơn,
+###    response lần sau có header "Idempotent-Replayed: true"
+POST http://localhost:8083/api/orders
+Authorization: Bearer <ACCESS_TOKEN>
+Idempotency-Key: order-demo-0001
+Content-Type: application/json
+
+{ "items": [ { "productId": "prod-keyboard", "quantity": 1 }, { "productId": "prod-mouse", "quantity": 2 } ] }
+
+### 3. Cùng key nhưng khác nội dung -> 422
+POST http://localhost:8083/api/orders
+Authorization: Bearer <ACCESS_TOKEN>
+Idempotency-Key: order-demo-0001
+Content-Type: application/json
+
+{ "items": [ { "productId": "prod-monitor", "quantity": 1 } ] }
+
+### 4. Xem đơn (PENDING -> CONFIRMED sau ~1-2 giây)
+GET http://localhost:8083/api/orders/<ORDER_ID>
+Authorization: Bearer <ACCESS_TOKEN>
+
+### 5. Xem thanh toán của đơn
+GET http://localhost:8084/api/payments/order/<ORDER_ID>
+Authorization: Bearer <ACCESS_TOKEN>
+
+### 6. Kịch bản bù trừ: giá .13 -> payment FAILED -> đơn CANCELLED
+POST http://localhost:8083/api/orders
+Authorization: Bearer <ACCESS_TOKEN>
+Idempotency-Key: order-decline-0001
+Content-Type: application/json
+
+{ "items": [ { "productId": "prod-decline-test", "quantity": 1 } ] }
+
+### 7. Kịch bản timeout sau khi trừ tiền: giá .14 -> retry cùng key -> vẫn chỉ trừ 1 lần, đơn CONFIRMED
+POST http://localhost:8083/api/orders
+Authorization: Bearer <ACCESS_TOKEN>
+Idempotency-Key: order-flaky-0001
+Content-Type: application/json
+
+{ "items": [ { "productId": "prod-flaky-test", "quantity": 1 } ] }
+
+### 8. Hết hàng -> 409
+POST http://localhost:8083/api/orders
+Authorization: Bearer <ACCESS_TOKEN>
+Idempotency-Key: order-oos-0001
+Content-Type: application/json
+
+{ "items": [ { "productId": "prod-hub", "quantity": 1 } ] }

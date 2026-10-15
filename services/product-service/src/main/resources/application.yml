@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: product-service
+  datasource:
+    url: ${CLICKHOUSE_URL:jdbc:ch://localhost:8123/shop}
+    username: ${CLICKHOUSE_USER:shop}
+    password: ${CLICKHOUSE_PASSWORD:shop}
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+    hikari:
+      maximum-pool-size: 5
+  mvc:
+    problemdetails:
+      enabled: true
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

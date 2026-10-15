@@ -1,0 +1,28 @@
+### 1. Đăng ký
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{ "email": "alice@example.com", "password": "password123", "fullName": "Alice" }
+
+### 2. Đăng nhập
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{ "email": "alice@example.com", "password": "password123" }
+
+### 3. Xem thông tin từ token (thay <ACCESS_TOKEN>)
+GET http://localhost:8081/api/auth/me
+Authorization: Bearer <ACCESS_TOKEN>
+
+### 4. Refresh (thay <REFRESH_TOKEN>; gọi lần 2 với cùng token sẽ nhận 401)
+POST http://localhost:8081/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "<REFRESH_TOKEN>" }
+
+### 5. Logout (cần cả access token trong header và refresh token trong body)
+POST http://localhost:8081/api/auth/logout
+Authorization: Bearer <ACCESS_TOKEN>
+Content-Type: application/json
+
+{ "refreshToken": "<REFRESH_TOKEN>" }

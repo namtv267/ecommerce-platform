@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: ${AUTH_DB_URL:jdbc:postgresql://localhost:5432/auth_db}
+    username: ${DB_USER:shop}
+    password: ${DB_PASSWORD:shop}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me-change-me-change-me-change-me-1234}
+      issuer: ecommerce-auth
+      access-token-ttl: 15m
+      refresh-token-ttl: 7d

@@ -1,0 +1,48 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: ${PAYMENT_DB_URL:jdbc:postgresql://localhost:5432/payment_db}
+    username: ${DB_USER:shop}
+    password: ${DB_PASSWORD:shop}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: payment-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+  mvc:
+    problemdetails:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me-change-me-change-me-change-me-1234}
+      issuer: ecommerce-auth
+  outbox:
+    poll-interval-ms: 500
+  payment:
+    gateway:
+      failure-rate: 0.0     # xác suất bị từ chối ngẫu nhiên (0.0 - 1.0)
+      timeout-rate: 0.0     # xác suất mất request (chưa trừ tiền) ngẫu nhiên
+      latency-ms: 300

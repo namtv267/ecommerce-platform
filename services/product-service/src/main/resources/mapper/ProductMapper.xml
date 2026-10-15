@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shop.product.adapter.out.persistence.ProductMapper">
+
+    <resultMap id="productRow" type="com.shop.product.adapter.out.persistence.ProductRow">
+        <id     column="id"          property="id"/>
+        <result column="sku"         property="sku"/>
+        <result column="name"        property="name"/>
+        <result column="description" property="description"/>
+        <result column="price"       property="price"/>
+        <result column="currency"    property="currency"/>
+        <result column="stock"       property="stock"/>
+        <result column="active"      property="active"/>
+    </resultMap>
+
+    <sql id="columns">id, sku, name, description, price, currency, stock, active</sql>
+
+    <!-- FINAL: ReplacingMergeTree gộp các phiên bản của cùng 1 id, chỉ lấy bản có updated_at mới nhất -->
+    <select id="selectById" resultMap="productRow">
+        SELECT <include refid="columns"/>
+        FROM shop.products FINAL
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByIds" resultMap="productRow">
+        SELECT <include refid="columns"/>
+        FROM shop.products FINAL
+        WHERE id IN
+        <foreach collection="ids" item="item" open="(" separator="," close=")">#{item}</foreach>
+    </select>
+
+    <select id="selectActive" resultMap="productRow">
+        SELECT <include refid="columns"/>
+        FROM shop.products FINAL
+        WHERE active = true
+        ORDER BY name
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+</mapper>

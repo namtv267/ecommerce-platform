@@ -1,0 +1,53 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${ORDER_DB_URL:jdbc:postgresql://localhost:5432/order_db}
+    username: ${DB_USER:shop}
+    password: ${DB_PASSWORD:shop}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: order-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+  mvc:
+    problemdetails:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-me-change-me-change-me-change-me-1234}
+      issuer: ecommerce-auth
+  product-service:
+    base-url: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+  outbox:
+    poll-interval-ms: 500
+  saga:
+    payment-timeout: 60s        # PENDING quá lâu -> gửi lại lệnh thanh toán (cùng idempotency key)
+    max-payment-attempts: 3     # hết số lần -> huỷ đơn
+    check-interval-ms: 15000
