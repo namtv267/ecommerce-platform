@@ -11,7 +11,7 @@ RUN gradle :services:${SERVICE}:bootJar -x test --no-daemon
 FROM eclipse-temurin:21-jre
 ARG SERVICE
 WORKDIR /app
-RUN useradd -r -u 1001 app
+RUN useradd -r -u 1001 app && mkdir -p /var/log/ecommerce && chmod 777 /var/log/ecommerce
 COPY --from=build /workspace/services/${SERVICE}/build/libs/*.jar app.jar
 USER app
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]

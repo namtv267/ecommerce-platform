@@ -87,7 +87,21 @@ docker compose up -d postgres redis kafka clickhouse kafka-ui
 ./gradlew :services:payment-service:bootRun   # 8084
 ```
 Kafka UI: http://localhost:8090 (xem `payment.commands`, `payment.events`, các topic `.DLT`).
+Kibana (Logging & Monitoring): http://localhost:5601 (xem và search log toàn hệ thống).
+Elasticsearch: http://localhost:9200.
 Request mẫu: `http/auth.http`, `http/order-flow.http`.
+
+## Logging & Monitoring (ELK Stack)
+
+Hệ thống sử dụng **Elasticsearch 8 + Kibana + Filebeat + Logstash Logback Encoder**:
+1. **Trace ID Propagation**: Nginx Gateway tự sinh `$request_id` và đính kèm vào header `X-Request-ID` / `X-Trace-ID`. Bộ lọc `TraceIdFilter` trong từng Spring Boot service đẩy `traceId` vào MDC.
+2. **Structured JSON Logging**: Mỗi microservice ghi log định dạng NDJSON vào volume chung `/var/log/ecommerce/*.log` (bao gồm `traceId`, `service`, `level`, `message`, `stack_trace`).
+3. **Nginx JSON Access Logs**: Nginx ghi log truy cập dạng JSON kèm `traceId`, `request_time`, `status`, `upstream_response_time` vào `/var/log/nginx/access.json.log`.
+4. **Filebeat**: Tự động thu thập log từ cả 4 backend services và Nginx, đẩy trực tiếp vào Elasticsearch index `ecommerce-app-*`.
+5. **Kibana**: Truy cập `http://localhost:5601` ➔ menu **Discover** để theo dõi và lọc log:
+   - Lọc theo service: `service : "order-service"` hoặc `service : "nginx"`
+   - Lọc theo lỗi: `level : "ERROR"`
+   - Truy vết 1 request qua toàn bộ hệ thống bằng `traceId`: `traceId : "<uuid>"` (xem Nginx nhận request, Order ghi outbox, Kafka phát lệnh, Payment xử lý).
 
 ## Test
 ```bash

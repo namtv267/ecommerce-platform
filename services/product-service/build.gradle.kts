@@ -9,6 +9,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation(libs.logstash.logback.encoder)
 
     // ClickHouse + MyBatis (không dùng JPA)
     implementation(libs.mybatis.spring.boot.starter)

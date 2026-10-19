@@ -1,0 +1,41 @@
+filebeat.inputs:
+  # ── 1. Spring Boot Microservices JSON Logs ──
+  - type: filestream
+    id: spring-boot-logs
+    enabled: true
+    paths:
+      - /var/log/ecommerce/*.log
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+
+  # ── 2. Nginx Gateway JSON Access Logs ──
+  - type: filestream
+    id: nginx-access-logs
+    enabled: true
+    paths:
+      - /var/log/nginx/*.json.log
+    parsers:
+      - ndjson:
+          target: ""
+          overwrite_keys: true
+          add_error_key: true
+
+# Processors to clean and enrich data
+processors:
+  - drop_fields:
+      fields: ["agent", "ecs"]
+      ignore_missing: true
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "ecommerce-app-%{+yyyy.MM.dd}"
+
+setup.template.name: "ecommerce-app"
+setup.template.pattern: "ecommerce-app-*"
+setup.template.enabled: false
+setup.ilm.enabled: false
+
+logging.level: info
