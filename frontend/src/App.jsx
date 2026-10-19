@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import ProductsPage from './pages/ProductsPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import OrdersPage from './pages/OrdersPage'
+import PaymentConfirmPage from './pages/PaymentConfirmPage'
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth()
@@ -41,6 +42,7 @@ function AppLayout() {
           {/* Public */}
           <Route path="/" element={<ProductsPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/payment-confirm" element={<PaymentConfirmPage />} />
 
           {/* Protected */}
           <Route

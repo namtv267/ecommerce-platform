@@ -95,7 +95,9 @@ public final class Order {
 
     /** Key ổn định theo đơn hàng, dùng cho idempotency ở payment-service. */
     public String paymentIdempotencyKey() {
-        return "payment-" + id;
+        return idempotencyKey != null && idempotencyKey.startsWith("email-")
+                ? "payment-email-" + id
+                : "payment-" + id;
     }
 
     public UUID id() { return id; }

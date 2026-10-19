@@ -18,6 +18,8 @@ spring:
         enable.idempotence: true
     consumer:
       group-id: payment-service
+      properties:
+        group.instance.id: ${KAFKA_GROUP_INSTANCE_ID:${HOSTNAME:payment-service-1}}
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer

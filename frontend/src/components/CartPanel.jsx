@@ -10,6 +10,7 @@ export default function CartPanel() {
   const navigate = useNavigate()
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('CARD')
 
   const handleCheckout = async () => {
     if (!user) { navigate('/login'); setIsOpen(false); return }
@@ -23,8 +24,9 @@ export default function CartPanel() {
         quantity: i.quantity,
       }))
       let orderId
+      const isEmail = paymentMethod === 'EMAIL'
       try {
-        const { data } = await orderApi.place(payload)
+        const { data } = await orderApi.place(payload, isEmail)
         orderId = data.id
       } catch (backendErr) {
         // Fallback: Tạo mock order mô phỏng trong localStorage nếu backend chưa chạy
@@ -44,6 +46,7 @@ export default function CartPanel() {
           totalAmount: total,
           currency: items[0]?.currency || 'USD',
           status: 'PENDING',
+          paymentMethod: paymentMethod,
           createdAt: new Date().toISOString(),
           isMock: true,
         }
@@ -144,8 +147,53 @@ export default function CartPanel() {
             </div>
 
             <div className="cart-panel__footer">
+              {/* Payment Method Selector */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>💳</span> Chọn phương thức thanh toán:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[
+                    { id: 'CARD', icon: '⚡', label: 'Cổng thanh toán tự động (Kafka Saga)', desc: 'Xử lý realtime & idempotent ngay' },
+                    { id: 'EMAIL', icon: '📧', label: 'Thanh toán qua Email (Dev Mail)', desc: 'Mở Mailpit, bấm Accept để xác nhận thanh toán' },
+                    { id: 'COD', icon: '💵', label: 'Thanh toán khi nhận hàng (COD)', desc: 'Tiền mặt khi giao hàng' },
+                  ].map((m) => (
+                    <label
+                      key={m.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: paymentMethod === m.id ? 'rgba(99, 102, 241, 0.12)' : 'var(--color-surface)',
+                        border: `1px solid ${paymentMethod === m.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        transition: 'border-color 0.2s',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="cartPaymentMethod"
+                        value={m.id}
+                        checked={paymentMethod === m.id}
+                        onChange={() => setPaymentMethod(m.id)}
+                        style={{ accentColor: 'var(--color-primary)' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>
+                          {m.icon} {m.label}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-3)' }}>{m.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               {error && (
-                <div className="alert alert--error" style={{ fontSize: '0.8rem' }}>
+                <div className="alert alert--error" style={{ fontSize: '0.8rem', marginBottom: 12 }}>
                   ⚠️ {error}
                 </div>
               )}
@@ -164,15 +212,15 @@ export default function CartPanel() {
                 {placing ? (
                   <>
                     <span className="spinner" />
-                    Đang đặt hàng...
+                    Đang xử lý thanh toán...
                   </>
                 ) : (
-                  '⚡ Đặt hàng ngay'
+                  '💳 Xác nhận & Thanh toán ngay'
                 )}
               </button>
               {!user && (
-                <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--color-text-3)' }}>
-                  Bạn cần đăng nhập để đặt hàng
+                <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--color-text-3)', marginTop: 8 }}>
+                  Bạn cần đăng nhập để thanh toán
                 </p>
               )}
             </div>

@@ -66,8 +66,9 @@ export const orderApi = {
    * items: [{ productId, quantity }]
    * Idempotency-Key header prevents duplicate orders on retry
    */
-  place: (items) => {
-    const idempotencyKey = crypto.randomUUID()
+  place: (items, isEmail = false) => {
+    const rawKey = crypto.randomUUID()
+    const idempotencyKey = isEmail ? `email-${rawKey}` : rawKey
     return api.post(
       '/orders',
       { items },
@@ -76,6 +77,12 @@ export const orderApi = {
   },
 
   get: (id) => api.get(`/orders/${id}`),
+}
+
+// ── Payments ──────────────────────────────────────────
+export const paymentApi = {
+  getByOrder: (orderId) => api.get(`/payments/order/${orderId}`),
+  approve: (orderId) => api.post(`/payments/approve/${orderId}`),
 }
 
 export default api

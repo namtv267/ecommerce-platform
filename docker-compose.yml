@@ -210,6 +210,14 @@ services:
       elasticsearch:
         condition: service_healthy
 
+  mailpit:
+    image: axllent/mailpit:v1.20
+    container_name: ecommerce-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   clickhouse-data:

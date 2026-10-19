@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { orderApi } from '../api/client'
+import { orderApi, paymentApi } from '../api/client'
 import { formatPrice, formatDate, shortId } from '../utils/helpers'
 
 const POLL_INTERVAL_MS = 3000
@@ -23,6 +23,7 @@ const STATUS_DESC = {
 export default function OrderDetailPage() {
   const { id } = useParams()
   const [order, setOrder] = useState(null)
+  const [payment, setPayment] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [pollCount, setPollCount] = useState(0)
@@ -34,6 +35,12 @@ export default function OrderDetailPage() {
       setOrder(data)
       if (TERMINAL_STATUSES.includes(data.status)) {
         clearInterval(intervalRef.current)
+      }
+      try {
+        const { data: payData } = await paymentApi.getByOrder(id)
+        if (payData) setPayment(payData)
+      } catch {
+        // Payment might still be pending
       }
     } catch (err) {
       // Fallback: Kiểm tra mock order trong localStorage
@@ -56,6 +63,18 @@ export default function OrderDetailPage() {
           clearInterval(intervalRef.current)
         }
         setOrder({ ...current })
+        if (current.status !== 'PENDING') {
+          setPayment({
+            id: 'pay-' + (id.length > 8 ? id.slice(0, 8) : id),
+            orderId: id,
+            amount: current.totalAmount,
+            currency: current.currency,
+            status: current.status === 'PAID' ? 'COMPLETED' : 'FAILED',
+            gatewayReference: 'gw_' + (id.length > 8 ? id.slice(0, 8) : id),
+            failureReason: current.cancelReason || null,
+            createdAt: current.createdAt,
+          })
+        }
       } else {
         setError('Không tìm thấy đơn hàng hoặc bạn không có quyền xem.')
         clearInterval(intervalRef.current)
@@ -184,6 +203,138 @@ export default function OrderDetailPage() {
             <span>{formatPrice(order.totalAmount, order.currency)}</span>
           </div>
         </div>
+
+        {/* 💳 Payment Details Card */}
+        <div style={{
+          marginTop: 24,
+          padding: 18,
+          background: 'rgba(99, 102, 241, 0.05)',
+          border: '1px solid rgba(99, 102, 241, 0.25)',
+          borderRadius: 'var(--radius-md)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h2 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-light)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>💳</span> Thông tin thanh toán (Payment Gateway)
+            </h2>
+            {payment ? (
+              <span className={`status-badge status-badge--${payment.status === 'COMPLETED' ? 'PAID' : payment.status === 'FAILED' ? 'CANCELLED' : 'PENDING'}`}>
+                <span className="status-dot" />
+                {payment.status === 'COMPLETED' ? 'PAID (Thành công)' : payment.status === 'FAILED' ? 'FAILED (Thất bại)' : 'PENDING'}
+              </span>
+            ) : isPending ? (
+              <span className="status-badge status-badge--PENDING">
+                <span className="spinner spinner--sm" /> Đang gửi lệnh...
+              </span>
+            ) : (
+              <span className="status-badge status-badge--PAID">
+                <span className="status-dot" /> ĐÃ XÁC NHẬN
+              </span>
+            )}
+          </div>
+
+          {payment ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, fontSize: '0.85rem' }}>
+              <div>
+                <span style={{ color: 'var(--color-text-3)', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Mã giao dịch (Payment ID)</span>
+                <span style={{ fontFamily: 'monospace', color: 'var(--color-text)', wordBreak: 'break-all' }}>{payment.id}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--color-text-3)', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Cổng thanh toán</span>
+                <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>Mock Gateway (Kafka Saga)</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--color-text-3)', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Mã đối soát Gateway Ref</span>
+                <span style={{ fontFamily: 'monospace', color: 'var(--color-primary-light)' }}>{payment.gatewayReference || 'gw_auto_settled'}</span>
+              </div>
+              <div>
+                <span style={{ color: 'var(--color-text-3)', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Số tiền thanh toán</span>
+                <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{formatPrice(payment.amount, payment.currency)}</span>
+              </div>
+              {payment.createdAt && (
+                <div>
+                  <span style={{ color: 'var(--color-text-3)', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Thời gian giao dịch</span>
+                  <span style={{ color: 'var(--color-text-2)' }}>{formatDate(payment.createdAt)}</span>
+                </div>
+              )}
+              {payment.failureReason && (
+                <div style={{ gridColumn: '1 / -1', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
+                  <span style={{ color: 'var(--color-danger)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Lý do từ chối giao dịch:</span>
+                  <span style={{ color: 'var(--color-danger)', fontWeight: 700 }}>{payment.failureReason}</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isPending ? (
+                <>
+                  <span className="spinner" />
+                  <span>Đang kết nối Kafka Saga & cổng thanh toán... Trạng thái sẽ cập nhật tự động.</span>
+                </>
+              ) : (
+                <span>Giao dịch thanh toán đã được ghi nhận tự động cho đơn hàng này.</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 📬 Dev Mail Action Banner when PENDING */}
+        {isPending && (
+          <div style={{
+            marginTop: 20,
+            padding: 16,
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 14,
+          }}>
+            <div style={{ maxWidth: 440 }}>
+              <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '0.9rem', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>📬</span> Thanh toán qua Email (Dev Mail)
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--color-text-2)', lineHeight: 1.5 }}>
+                Email xác nhận đã được gửi tới <strong>Mailpit</strong>. Bạn chỉ cần mở hộp thư và bấm nút <strong>Accept</strong> để đơn hàng chuyển sang <strong>PAID</strong>!
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <a
+                href="http://localhost:8025"
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn--sm"
+                style={{
+                  background: '#f59e0b',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  textDecoration: 'none'
+                }}
+              >
+                <span>📧</span> Mở Mailpit (:8025) ↗
+              </a>
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={async () => {
+                  try {
+                    await paymentApi.approve(order.id)
+                    fetchOrder()
+                  } catch (e) {
+                    alert('Lỗi: ' + e.message)
+                  }
+                }}
+              >
+                ⚡ Duyệt ngay
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
