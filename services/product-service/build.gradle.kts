@@ -12,7 +12,11 @@ dependencies {
 
     // ClickHouse + MyBatis (không dùng JPA)
     implementation(libs.mybatis.spring.boot.starter)
-    implementation(variantOf(libs.clickhouse.jdbc) { classifier("all") })
+    implementation(libs.clickhouse.jdbc)
+    implementation("com.clickhouse:clickhouse-client:0.6.5")
+    implementation("com.clickhouse:clickhouse-http-client:0.6.5")
+    implementation("org.apache.httpcomponents.client5:httpclient5")
+    implementation("org.lz4:lz4-java:1.8.0")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

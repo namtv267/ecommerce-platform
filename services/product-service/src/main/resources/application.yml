@@ -5,7 +5,7 @@ spring:
   application:
     name: product-service
   datasource:
-    url: ${CLICKHOUSE_URL:jdbc:ch://localhost:8123/shop}
+    url: ${CLICKHOUSE_URL:jdbc:ch://localhost:8123/shop?compress=0}
     username: ${CLICKHOUSE_USER:shop}
     password: ${CLICKHOUSE_PASSWORD:shop}
     driver-class-name: com.clickhouse.jdbc.ClickHouseDriver

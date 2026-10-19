@@ -24,7 +24,7 @@ class ProductController {
         this.listProducts = listProducts;
     }
 
-    @GetMapping
+    @GetMapping({"", "/"})
     List<ProductResponse> list(@RequestParam(defaultValue = "0") int page,
                                @RequestParam(defaultValue = "20") int size) {
         return listProducts.listActive(page, size).stream().map(ProductResponse::from).toList();
